@@ -1,0 +1,19 @@
+[package]
+name = "agt-token"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+soroban-token-sdk = "21.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+panic = "abort"
+codegen-units = 1

@@ -1,0 +1,3 @@
+[workspace]
+members = ["agt-token", "liquidity-pool", "bridge"]
+resolver = "2"

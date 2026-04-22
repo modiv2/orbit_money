@@ -1,0 +1,282 @@
+name: Orbit Money CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: '20'
+  RUST_VERSION: 'stable'
+
+jobs:
+
+  # ─────────────────────────────────────────────
+  # JOB 1 — Lint Rust contracts
+  # ─────────────────────────────────────────────
+  lint-contracts:
+    name: Lint Rust contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Check formatting
+        run: cd contracts && cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cd contracts && cargo clippy --target wasm32-unknown-unknown -- -D warnings
+
+  # ─────────────────────────────────────────────
+  # JOB 2 — Test Soroban contracts
+  # ─────────────────────────────────────────────
+  test-contracts:
+    name: Test Soroban contracts
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Install soroban-cli
+        run: cargo install --locked soroban-cli --features opt
+
+      - name: Run all contract tests
+        run: cd contracts && cargo test --all -- --nocapture
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-test-results
+          path: contracts/target/
+
+  # ─────────────────────────────────────────────
+  # JOB 3 — Build Soroban WASM
+  # ─────────────────────────────────────────────
+  build-contracts:
+    name: Build Soroban WASM
+    runs-on: ubuntu-latest
+    needs: test-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Build agt-token
+        run: cd contracts/agt-token && cargo build --target wasm32-unknown-unknown --release
+
+      - name: Build liquidity-pool
+        run: cd contracts/liquidity-pool && cargo build --target wasm32-unknown-unknown --release
+
+      - name: Build bridge
+        run: cd contracts/bridge && cargo build --target wasm32-unknown-unknown --release
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soroban-wasm
+          path: contracts/target/wasm32-unknown-unknown/release/*.wasm
+
+  # ─────────────────────────────────────────────
+  # JOB 4 — Lint + typecheck frontend
+  # ─────────────────────────────────────────────
+  lint-frontend:
+    name: Lint + typecheck frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: cd frontend && npm ci
+
+      - run: cd frontend && npm run lint
+
+      - run: cd frontend && npx tsc --noEmit
+
+  # ─────────────────────────────────────────────
+  # JOB 5 — Build Next.js frontend
+  # ─────────────────────────────────────────────
+  build-frontend:
+    name: Build Next.js frontend
+    runs-on: ubuntu-latest
+    needs: lint-frontend
+    env:
+      NEXT_PUBLIC_STELLAR_NETWORK: TESTNET
+      NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+      NEXT_PUBLIC_SOROBAN_RPC: https://soroban-testnet.stellar.org
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: cd frontend && npm ci
+
+      - run: cd frontend && npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: frontend/.next/
+
+  # ─────────────────────────────────────────────
+  # JOB 6 — Deploy preview to Vercel (PRs only)
+  # ─────────────────────────────────────────────
+  deploy-preview:
+    name: Deploy preview to Vercel
+    runs-on: ubuntu-latest
+    needs: [build-contracts, build-frontend]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: npm install -g vercel
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          cd frontend
+          PREVIEW_URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --yes)
+          echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## ✅ Preview Deployed',
+                '',
+                `**URL:** ${{ steps.deploy.outputs.url }}`,
+                '**Network:** Stellar Testnet',
+                `**Commit:** ${context.sha.substring(0,7)}`
+              ].join('\n')
+            })
+
+  # ─────────────────────────────────────────────
+  # JOB 7 — Deploy contracts + frontend (main only)
+  # ─────────────────────────────────────────────
+  deploy-production:
+    name: Deploy contracts + frontend to production
+    runs-on: ubuntu-latest
+    needs: [build-contracts, build-frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: soroban-wasm
+          path: contracts/wasm/
+
+      - name: Install soroban-cli
+        run: cargo install --locked soroban-cli --features opt
+
+      - name: Install Node dependencies
+        run: npm install @stellar/stellar-sdk
+
+      - name: Deploy contracts to Stellar Testnet
+        env:
+          STELLAR_ISSUER_SECRET: ${{ secrets.STELLAR_ISSUER_SECRET }}
+          STELLAR_DISTRIBUTOR_SECRET: ${{ secrets.STELLAR_DISTRIBUTOR_SECRET }}
+        run: node scripts/deploy.js
+
+      - name: Setup trustlines
+        env:
+          STELLAR_ISSUER_SECRET: ${{ secrets.STELLAR_ISSUER_SECRET }}
+          STELLAR_DISTRIBUTOR_SECRET: ${{ secrets.STELLAR_DISTRIBUTOR_SECRET }}
+        run: node scripts/setup-trustlines.js
+
+      - name: Commit deployment record
+        run: |
+          git config user.email "ci@orbit.money"
+          git config user.name "Orbit Money CI"
+          git add deployments/
+          git diff --staged --quiet || git commit -m "ci: update deployments [skip ci]"
+          git push
+
+      - name: Deploy frontend to Vercel production
+        run: |
+          npm install -g vercel
+          cd frontend && vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            let dep = {}
+            try {
+              dep = JSON.parse(fs.readFileSync('deployments/testnet.json', 'utf8'))
+            } catch {
+              dep = { AGTToken: {contractId:'N/A'}, LiquidityPool: {contractId:'N/A'}, Bridge: {contractId:'N/A'}, issuerPublicKey:'N/A' }
+            }
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${context.sha.substring(0,7)}`,
+              name: `Orbit Money — ${new Date().toISOString().split('T')[0]}`,
+              body: [
+                '## 🚀 Deployed contracts (Stellar Testnet)',
+                '',
+                `| Contract | Address |`,
+                `|---|---|`,
+                `| AGT Token | \`${dep.AGTToken?.contractId}\` |`,
+                `| Liquidity Pool | \`${dep.LiquidityPool?.contractId}\` |`,
+                `| Bridge | \`${dep.Bridge?.contractId}\` |`,
+                '',
+                `**AGT Issuer:** \`${dep.issuerPublicKey}\``,
+                `**Trustline asset:** \`AGT:${dep.issuerPublicKey}\``,
+              ].join('\n')
+            })

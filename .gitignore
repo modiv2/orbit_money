@@ -1,0 +1,31 @@
+# Rust build artifacts
+contracts/target/
+*.wasm
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Environment secrets — NEVER commit these
+.env.local
+.env.*.local
+frontend/.env.local
+frontend/.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+*.lock.bak

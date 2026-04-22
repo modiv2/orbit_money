@@ -1,0 +1,8 @@
+{
+  "network": "testnet",
+  "deployedAt": "",
+  "issuerPublicKey": "",
+  "AGTToken": { "contractId": "", "wasm": "agt_token.wasm" },
+  "LiquidityPool": { "contractId": "", "wasm": "liquidity_pool.wasm" },
+  "Bridge": { "contractId": "", "wasm": "bridge.wasm" }
+}

@@ -34,7 +34,8 @@ export async function POST(req: Request) {
     const server      = new Horizon.Server(HORIZON_URL);
     const issuerAcct  = await server.loadAccount(issuerKp.publicKey());
 
-    // Check recipient has a trustline
+    /* 
+    // Optimization: Skip pre-check, let Horizon fail if trustline is missing
     let recipientAcct;
     try {
       recipientAcct = await server.loadAccount(recipient);
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
     if (!hasTrustline) {
       return NextResponse.json({ error: 'Recipient does not have an AGT trustline. Ask them to add it first.' }, { status: 400 });
     }
+    */
 
     // Build and sign the classic Payment transaction server-side
     const tx = new TransactionBuilder(issuerAcct, {

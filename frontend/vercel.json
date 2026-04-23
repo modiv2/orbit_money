@@ -2,5 +2,10 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "functions": {
+    "app/api/admin/mint/route.ts": {
+      "maxDuration": 60
+    }
+  }
 }

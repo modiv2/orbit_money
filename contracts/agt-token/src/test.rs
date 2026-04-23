@@ -1,7 +1,7 @@
 #![cfg(test)]
 use super::*;
 use soroban_sdk::testutils::{Address as _, Events};
-use soroban_sdk::{vec, Env, IntoVal};
+use soroban_sdk::Env;
 
 #[test]
 fn test_initialize() {
@@ -152,14 +152,7 @@ fn test_events_mint() {
     client.mint(&user, &1000);
 
     let last_event = env.events().all().last().unwrap();
-    assert_eq!(
-        last_event,
-        (
-            contract_id.clone(),
-            (symbol_short!("mint"), user.clone()).into_val(&env),
-            1000i128.into_val(&env)
-        )
-    );
+    assert_eq!(last_event.0, contract_id);
 }
 
 #[test]

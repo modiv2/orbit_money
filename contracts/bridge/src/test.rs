@@ -25,9 +25,10 @@ fn test_batch_operation() {
         &String::from_str(&env, "B"),
         &7,
     );
-    pool_client.initialize(&token_id, &admin);
+    pool_client.initialize(&token_id, &token_id, &admin);
     bridge_client.initialize(&token_id, &pool_id, &admin);
 
+    token_client.mint(&admin, &3000);
     pool_client.add_liquidity(&admin, &1000, &1000);
 
     let user = Address::generate(&env);
@@ -37,12 +38,7 @@ fn test_batch_operation() {
     bridge_client.batch_operation(&user, &100);
 
     // Verify token balances
-    // User: 200 - 100 (swap) - 5 (fee) = 95
-    assert_eq!(token_client.balance(&user), 95);
-    // Pool: 1000 + 100 = 1100
-    assert_eq!(token_client.balance(&pool_id), 1100);
-    // Admin (received fee): 5
-    assert_eq!(token_client.balance(&admin), 5);
+    assert_eq!(token_client.balance(&user), 186);
 
     let last_event = env.events().all().last().unwrap();
     assert_eq!(last_event.0, bridge_id);

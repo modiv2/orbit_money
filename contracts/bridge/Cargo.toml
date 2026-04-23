@@ -13,7 +13,7 @@ agt-token = { path = "../agt-token" }
 liquidity-pool = { path = "../liquidity-pool" }
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [profile.release]
 opt-level = "z"

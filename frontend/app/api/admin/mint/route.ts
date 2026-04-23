@@ -16,10 +16,12 @@ export async function POST(req: Request) {
   try {
     const { recipient, amount, callerPubKey } = await req.json();
 
-    // Only allow admin to call this
+    // Faucet mode for testnet: anyone can request test AGT
+    /*
     if (!ADMIN_WALLETS.includes(callerPubKey)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+    */
     if (!recipient || !amount || parseFloat(amount) <= 0) {
       return NextResponse.json({ error: 'Invalid params' }, { status: 400 });
     }

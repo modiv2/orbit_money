@@ -130,6 +130,33 @@ export default function DashboardPage() {
             <TrustlineCard publicKey={publicKey} />
           </div>
 
+          {/* Faucet Section */}
+          <div className="glass-card" style={{ marginBottom: 24, background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Testnet Faucet</p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Get 1,000 AGT to test the pool & swap</p>
+              </div>
+              <button 
+                className="btn-primary" 
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/mint', {
+                      method: 'POST',
+                      body: JSON.stringify({ recipient: publicKey, amount: '1000', callerPubKey: publicKey })
+                    });
+                    const data = await res.json();
+                    if (data.hash) alert("1,000 AGT Minted! Check your balance in a few seconds.");
+                    else alert("Mint failed: " + (data.error || "Unknown error"));
+                  } catch (e) { alert("Mint failed"); }
+                }}
+                style={{ minHeight: 40, padding: '0 20px', fontSize: 13, background: 'var(--success)' }}
+              >
+                Request 1,000 AGT
+              </button>
+            </div>
+          </div>
+
           {/* Live Events Feed */}
           <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}>

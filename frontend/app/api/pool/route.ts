@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SorobanRpc, Contract, Networks, xdr, Account, Horizon, TransactionBuilder } from '@stellar/stellar-sdk';
+import { SorobanRpc, Contract, Networks, xdr, Account, Horizon, TransactionBuilder, scValToNative } from '@stellar/stellar-sdk';
 
 const RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 const POOL_CONTRACT = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS || '';
@@ -42,21 +42,11 @@ export async function GET() {
 
     if (SorobanRpc.Api.isSimulationSuccess(simulation) && simulation.result) {
       const val = simulation.result.retval;
-      // val is expected to be a scvVec of two i128s
-      if (val.switch() === xdr.ScValType.scvVec()) {
-        const items = val.vec() || [];
-        // Helper to convert i128 to BigInt
-        const scValToBigInt = (scVal: xdr.ScVal): bigint => {
-          const i128 = scVal.i128();
-          const lo = BigInt(i128.lo().toString());
-          const hi = BigInt(i128.hi().toString());
-          return (hi << 64n) | lo;
-        };
-
-        if (items.length >= 2) {
-          agtReserve = scValToBigInt(items[0]).toString();
-          xlmReserve = scValToBigInt(items[1]).toString();
-        }
+      const native = scValToNative(val);
+      
+      if (Array.isArray(native) && native.length >= 2) {
+        agtReserve = native[0].toString();
+        xlmReserve = native[1].toString();
       }
     }
 

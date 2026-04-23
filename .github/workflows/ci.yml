@@ -56,7 +56,7 @@ jobs:
           workspaces: contracts
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev libssl-dev build-essential
 
       - name: Install soroban-cli
         run: cargo install --locked soroban-cli
@@ -224,7 +224,7 @@ jobs:
           path: contracts/wasm/
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev libssl-dev build-essential
 
       - name: Install soroban-cli
         run: cargo install --locked soroban-cli

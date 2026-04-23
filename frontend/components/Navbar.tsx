@@ -10,7 +10,11 @@ import {
 import { useFreighter } from '@/hooks/useFreighter';
 import { floatUp } from '@/lib/animations';
 
-const ADMIN_ADDRESS = 'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX';
+const ADMIN_WALLETS = [
+  'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX',
+  'GCKQMQVZN5A6QMQCVKQ4SX335HLUW4N7ETXK34IOOMZOIQ2TLFF2FNLG',
+  'GAV7DLBH6F3P5OU4GD3YVSZZ3DHRXGA2D6ORQBN4XSL63J4WD3H2SUSG',
+];
 
 const NAV_LINKS = [
   { href: '/',          label: 'Home',      icon: BarChart3 },
@@ -22,7 +26,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const { isConnected, connect, disconnect, publicKey, network, isLoading } = useFreighter();
-  const isAdmin = isConnected && publicKey === ADMIN_ADDRESS;
+  const isAdmin = isConnected && ADMIN_WALLETS.includes(publicKey);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 

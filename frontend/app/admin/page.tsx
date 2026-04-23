@@ -7,13 +7,17 @@ import {
 } from 'lucide-react';
 import { useFreighter } from '@/hooks/useFreighter';
 
-const ADMIN_ADDRESS      = 'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX';
+const ADMIN_WALLETS = [
+  'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX',
+  'GCKQMQVZN5A6QMQCVKQ4SX335HLUW4N7ETXK34IOOMZOIQ2TLFF2FNLG',
+  'GAV7DLBH6F3P5OU4GD3YVSZZ3DHRXGA2D6ORQBN4XSL63J4WD3H2SUSG',
+];
 const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
 const HORIZON_URL        = 'https://horizon-testnet.stellar.org';
 const RPC_URL            = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 const POOL_CONTRACT      = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS || '';
 
-type TxResult = { ok: boolean; hash?: string; error?: string };
+type TxResult = { ok: boolean; hash?: string; error?: string; sourceLabel?: string; sourceAccount?: string };
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ result }: { result: TxResult | null }) {
@@ -30,20 +34,33 @@ function StatusBadge({ result }: { result: TxResult | null }) {
       }}
     >
       {result.ok
-        ? <><CheckCircle2 size={15} />Tx confirmed —&nbsp;
-            <a href={`https://stellar.expert/explorer/testnet/tx/${result.hash}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{ color: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
-              {result.hash?.slice(0, 14)}… <ExternalLink size={11} />
-            </a>
+        ? <>
+            <CheckCircle2 size={15} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                Confirmed —&nbsp;
+                <a href={`https://stellar.expert/explorer/testnet/tx/${result.hash}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {result.hash?.slice(0, 14)}… <ExternalLink size={11} />
+                </a>
+              </div>
+              {result.sourceLabel && (
+                <div style={{ fontSize: 11, opacity: 0.7 }}>
+                  Source: <strong>{result.sourceLabel}</strong>
+                  {result.sourceAccount && ` (${result.sourceAccount.slice(0,6)}…${result.sourceAccount.slice(-4)})`}
+                </div>
+              )}
+            </div>
           </>
         : <><XCircle size={15} />{result.error}</>}
     </motion.div>
   );
 }
 
-// ─── Soroban invoke (pool operations) ─────────────────────────────────────────
-async function sorobanInvoke(publicKey: string, contractId: string, fn: string, args: any[]): Promise<TxResult> {
+// ─── Shared Soroban Invocation Helper ─────────────────────────────────────────
+async function sorobanInvokeV2(publicKey: string, contractId: string, fn: string, args: any[]): Promise<TxResult> {
+  let step = 'init';
   try {
     const { Contract, TransactionBuilder, Horizon, SorobanRpc } = await import('@stellar/stellar-sdk');
     const { signTransaction } = await import('@stellar/freighter-api');
@@ -53,26 +70,46 @@ async function sorobanInvoke(publicKey: string, contractId: string, fn: string, 
     const account = await horizon.loadAccount(publicKey);
     const op      = new Contract(contractId).call(fn, ...args);
 
-    let tx = new TransactionBuilder(account, { fee: '10000', networkPassphrase: NETWORK_PASSPHRASE })
+    step = 'building tx';
+    let tx = new TransactionBuilder(account, { fee: '100000', networkPassphrase: NETWORK_PASSPHRASE })
       .addOperation(op).setTimeout(180).build();
+    
+    step = 'prepareTransaction';
     tx = await server.prepareTransaction(tx);
 
+    step = 'signTransaction';
     const signed = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
     const xdrStr = typeof signed === 'string' ? signed : (signed as any)?.signedTxXdr ?? '';
     if (!xdrStr) throw new Error('Freighter cancelled');
 
+    step = 'fromXDR';
     const finalTx  = TransactionBuilder.fromXDR(xdrStr, NETWORK_PASSPHRASE);
+    
+    step = 'sendTransaction';
     const response = await server.sendTransaction(finalTx);
     if (response.status === 'ERROR') throw new Error('Transaction rejected on-chain');
 
+    step = 'waiting';
     for (let i = 0; i < 8; i++) {
       await new Promise(r => setTimeout(r, 4000));
-      const c = await server.getTransaction(response.hash);
-      if (c.status !== 'NOT_FOUND') break;
+      // Manually fetch to bypass SDK 11.3.0 XDR parsing bugs on Protocol 21+ Testnet
+      const res = await fetch(RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTransaction', params: { hash: response.hash } })
+      });
+      const data = await res.json();
+      const status = data?.result?.status;
+      if (status && status !== 'NOT_FOUND') {
+        if (status === 'FAILED') {
+          throw new Error('Transaction failed on-chain (check balances and trustlines)');
+        }
+        break;
+      }
     }
     return { ok: true, hash: response.hash };
   } catch (e: any) {
-    return { ok: false, error: e.message || String(e) };
+    return { ok: false, error: `[${step}] ${e.message || String(e)}` };
   }
 }
 
@@ -161,15 +198,18 @@ function SeedLiquidityCard({ publicKey }: { publicKey: string }) {
     if (!agtAmt || !xlmAmt) return;
     setBusy(true); setResult(null);
     try {
-      const { Address, nativeToScVal } = await import('@stellar/stellar-sdk');
+      const { Address, xdr } = await import('@stellar/stellar-sdk');
 
-      const tokenStroops = Math.floor(parseFloat(agtAmt) * 1e7);
-      const xlmStroops   = Math.floor(parseFloat(xlmAmt) * 1e7);
+      // Force strictly i128 XDR to avoid any browser nativeToScVal type 4 (i32) bugs
+      const toI128 = (stroops: number) => xdr.ScVal.scvI128(new xdr.Int128Parts({
+        hi: new xdr.Int64(0),
+        lo: xdr.Uint64.fromString(stroops.toString())
+      }));
 
-      const res = await sorobanInvoke(publicKey, POOL_CONTRACT, 'add_liquidity', [
+      const res = await sorobanInvokeV2(publicKey, POOL_CONTRACT, 'add_liquidity', [
         new Address(publicKey).toScVal(),
-        nativeToScVal(tokenStroops, { type: 'i128' }),
-        nativeToScVal(xlmStroops,   { type: 'i128' }),
+        toI128(Math.floor(parseFloat(agtAmt) * 1e7)),
+        toI128(Math.floor(parseFloat(xlmAmt) * 1e7)),
       ]);
       setResult(res);
     } catch (e: any) {
@@ -275,7 +315,7 @@ function PoolStatsCard() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const { isConnected, connect, publicKey, isLoading } = useFreighter();
-  const isAdmin = isConnected && publicKey === ADMIN_ADDRESS;
+  const isAdmin = isConnected && ADMIN_WALLETS.includes(publicKey);
 
   if (!isConnected) return (
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>

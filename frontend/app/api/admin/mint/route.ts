@@ -6,14 +6,18 @@ import {
 
 const ISSUER_SECRET = process.env.STELLAR_ISSUER_SECRET!;
 const HORIZON_URL   = 'https://horizon-testnet.stellar.org';
-const ADMIN_ADDRESS = 'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX';
+const ADMIN_WALLETS = [
+  'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX',
+  'GCKQMQVZN5A6QMQCVKQ4SX335HLUW4N7ETXK34IOOMZOIQ2TLFF2FNLG',
+  'GAV7DLBH6F3P5OU4GD3YVSZZ3DHRXGA2D6ORQBN4XSL63J4WD3H2SUSG',
+];
 
 export async function POST(req: Request) {
   try {
     const { recipient, amount, callerPubKey } = await req.json();
 
     // Only allow admin to call this
-    if (callerPubKey !== ADMIN_ADDRESS) {
+    if (!ADMIN_WALLETS.includes(callerPubKey)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     if (!recipient || !amount || parseFloat(amount) <= 0) {

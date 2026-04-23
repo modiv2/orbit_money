@@ -72,14 +72,26 @@ body {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(10, 10, 12, 0.8);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 10, 12, 0.85);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--card-border);
-  padding: 12px 24px;
+  padding: 10px 16px;
   border-radius: 32px;
   display: flex;
-  gap: 32px;
+  gap: 16px;
   z-index: 100;
+  width: auto;
+  max-width: 92%;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    gap: 32px;
+    padding: 12px 24px;
+    max-width: 600px;
+  }
 }
 
 .nav-item {
@@ -109,10 +121,29 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* Show mobile hamburger only on small screens */
-@media (max-width: 767px) {
-  .mobile-menu-btn {
+/* Visibility utilities */
+.hidden-mobile {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
     display: flex !important;
   }
+  .hidden-desktop {
+    display: none !important;
+  }
+}
+
+/* Scroll lock when mobile menu is open */
+.no-scroll {
+  overflow: hidden !important;
+}
+
+/* Ensure body doesn't horizontal scroll */
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 

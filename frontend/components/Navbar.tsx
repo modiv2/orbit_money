@@ -46,7 +46,9 @@ export function Navbar() {
           borderBottom: '1px solid var(--card-border)',
         }}
       >
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 0 }}>
+
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'white' }}>
             <motion.div
@@ -65,47 +67,49 @@ export function Navbar() {
             <span style={{ fontWeight: 800, fontSize: 16 }}>Orbit Money</span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav style={{ display: 'flex', gap: 4, marginLeft: 16, flex: 1 }}>
-            {NAV_LINKS.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href;
-              return (
+            {/* Desktop Nav */}
+            <nav className="hidden-mobile" style={{ gap: 4, marginLeft: 16 }}>
+              {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href} href={href}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
+                      fontSize: 14, fontWeight: active ? 600 : 400,
+                      color: active ? 'white' : 'rgba(255,255,255,0.5)',
+                      background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                      border: active ? '1px solid rgba(139,92,246,0.3)' : '1px solid transparent',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <Icon size={15} style={{ color: active ? 'var(--accent)' : 'inherit' }} />
+                    {label}
+                  </Link>
+                );
+              })}
+              {/* Admin link — only for admin wallet */}
+              {isAdmin && (
                 <Link
-                  key={href} href={href}
+                  href="/admin"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
-                    fontSize: 14, fontWeight: active ? 600 : 400,
-                    color: active ? 'white' : 'rgba(255,255,255,0.5)',
-                    background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
-                    border: active ? '1px solid rgba(139,92,246,0.3)' : '1px solid transparent',
+                    fontSize: 14, fontWeight: pathname === '/admin' ? 600 : 400,
+                    color: pathname === '/admin' ? 'white' : 'rgba(255,200,100,0.7)',
+                    background: pathname === '/admin' ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.05)',
+                    border: pathname === '/admin' ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(245,158,11,0.15)',
                     transition: 'all 0.2s',
                   }}
                 >
-                  <Icon size={15} style={{ color: active ? 'var(--accent)' : 'inherit' }} />
-                  {label}
+                  <Shield size={15} style={{ color: '#f59e0b' }} />
+                  Admin
                 </Link>
-              );
-            })}
-            {/* Admin link — only for admin wallet */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
-                  fontSize: 14, fontWeight: pathname === '/admin' ? 600 : 400,
-                  color: pathname === '/admin' ? 'white' : 'rgba(255,200,100,0.7)',
-                  background: pathname === '/admin' ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.05)',
-                  border: pathname === '/admin' ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(245,158,11,0.15)',
-                  transition: 'all 0.2s',
-                }}
-              >
-                <Shield size={15} style={{ color: '#f59e0b' }} />
-                Admin
-              </Link>
-            )}
-          </nav>
+              )}
+            </nav>
+          </div>
+
 
           {/* Wallet Area */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -120,11 +124,14 @@ export function Navbar() {
 
             {isConnected ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-                  padding: '6px 12px', borderRadius: 10, fontSize: 12, fontFamily: 'monospace',
-                }}>
+                <div 
+                  className="hidden-mobile"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                    padding: '6px 12px', borderRadius: 10, fontSize: 12, fontFamily: 'monospace',
+                  }}
+                >
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
                   {publicKey.slice(0, 5)}…{publicKey.slice(-4)}
                   <button
@@ -136,6 +143,7 @@ export function Navbar() {
                   </button>
                 </div>
                 <button
+                  className="hidden-mobile"
                   onClick={disconnect}
                   style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'rgba(255,255,255,0.45)', padding: '6px 10px', cursor: 'pointer', fontSize: 12, minHeight: 36 }}
                 >
@@ -143,6 +151,7 @@ export function Navbar() {
                 </button>
               </div>
             ) : (
+
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}

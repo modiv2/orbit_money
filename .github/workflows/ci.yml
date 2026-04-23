@@ -213,29 +213,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Deploy frontend to Vercel production
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          STELLAR_ISSUER_SECRET: ${{ secrets.STELLAR_ISSUER_SECRET }}
-          STELLAR_ISSUER_PUBLIC: ${{ secrets.STELLAR_ISSUER_PUBLIC }}
-          STELLAR_DISTRIBUTOR_SECRET: ${{ secrets.STELLAR_DISTRIBUTOR_SECRET }}
-          STELLAR_DISTRIBUTOR_PUBLIC: ${{ secrets.STELLAR_DISTRIBUTOR_PUBLIC }}
-        run: |
-          npm install -g vercel
-          cd frontend && vercel deploy --prod --token=$VERCEL_TOKEN --yes \
-            --env STELLAR_ISSUER_SECRET="$STELLAR_ISSUER_SECRET" \
-            --env STELLAR_ISSUER_PUBLIC="$STELLAR_ISSUER_PUBLIC" \
-            --env STELLAR_DISTRIBUTOR_SECRET="$STELLAR_DISTRIBUTOR_SECRET" \
-            --env STELLAR_DISTRIBUTOR_PUBLIC="$STELLAR_DISTRIBUTOR_PUBLIC" \
-            --env NEXT_PUBLIC_AGT_ISSUER="$STELLAR_ISSUER_PUBLIC" \
-            --env NEXT_PUBLIC_POOL_CONTRACT_ADDRESS="CCQZXG3QGFPLRS6LJJ4XALJGUGVNLISYN6BJSVOH57ED6FYJH7KGKXAR" \
-            --env NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS="CCHLK4RHSS27U4K6VRIP6QW2N5IGBJJES4GA4CI3RRUGP54G4FH5HL7P" \
-            --env NEXT_PUBLIC_BRIDGE_CONTRACT_ADDRESS="CBMGE6BSHIGBXAUMW32D542POCBMI3DHP7ZZGI6RTGPRECJQA3S5ZFDI" \
-            --env NEXT_PUBLIC_HORIZON_URL="https://horizon-testnet.stellar.org" \
-            --env NEXT_PUBLIC_SOROBAN_RPC_URL="https://soroban-testnet.stellar.org" \
-            --env SOROBAN_RPC_URL="https://soroban-testnet.stellar.org" \
-            --env HORIZON_URL="https://horizon-testnet.stellar.org"
-
       - name: Create GitHub Release
         uses: actions/github-script@v7
         with:

@@ -50,7 +50,7 @@ export async function GET() {
         type,
         from: topic[1] || 'Unknown',
         amount,
-        txHash: ev.txHash,
+        txHash: (ev as any).transactionHash || '',
         ledger: ev.ledger,
         timestamp: ev.ledgerClosedAt || new Date().toISOString(),
       };

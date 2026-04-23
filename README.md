@@ -50,7 +50,7 @@ Orbit Money is a decentralized liquidity protocol built on the **Stellar Blockch
 
 ## 🎥 Video Demonstration
 
-[![Orbit Money Demo Placeholder](https://via.placeholder.com/800x450/0f172a/ffffff?text=Click+to+Watch+Orbit+Money+Demo)](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+![Orbit Money Demo](./screenshots/demo.gif)
 *A walkthrough of the full protocol flow: connecting wallet, adding trustline, requesting test AGT, and providing liquidity.*
 
 ---

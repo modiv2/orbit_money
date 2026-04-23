@@ -1,14 +1,14 @@
 const {
   Asset,
   Keypair,
-  Network,
+  Networks,
   Operation,
-  Server,
+  Horizon,
   TransactionBuilder,
 } = require('@stellar/stellar-sdk');
 
-const server = new Server('https://horizon-testnet.stellar.org');
-Network.useTestNetwork();
+const server = new Horizon.Server('https://horizon-testnet.stellar.org');
+const networkPassphrase = Networks.TESTNET;
 
 const ISSUER_SECRET = process.env.STELLAR_ISSUER_SECRET;
 const DISTRIBUTOR_SECRET = process.env.STELLAR_DISTRIBUTOR_SECRET;
@@ -23,7 +23,7 @@ async function setupTrustlines() {
     const distributorAccount = await server.loadAccount(distributorKeypair.publicKey());
     
     // 1. Create Trustline
-    const trustTx = new TransactionBuilder(distributorAccount, { fee: '1000' })
+    const trustTx = new TransactionBuilder(distributorAccount, { fee: '1000', networkPassphrase })
       .addOperation(Operation.changeTrust({
         asset: AGT_ASSET,
         limit: '1000000',
@@ -37,7 +37,7 @@ async function setupTrustlines() {
 
     // 2. Initial Issue
     const issuerAccount = await server.loadAccount(issuerKeypair.publicKey());
-    const issueTx = new TransactionBuilder(issuerAccount, { fee: '1000' })
+    const issueTx = new TransactionBuilder(issuerAccount, { fee: '1000', networkPassphrase })
       .addOperation(Operation.payment({
         destination: distributorKeypair.publicKey(),
         asset: AGT_ASSET,
@@ -59,7 +59,7 @@ async function addTrustline(userSecret) {
   const userKeypair = Keypair.fromSecret(userSecret);
   const userAccount = await server.loadAccount(userKeypair.publicKey());
 
-  const tx = new TransactionBuilder(userAccount, { fee: '1000' })
+  const tx = new TransactionBuilder(userAccount, { fee: '1000', networkPassphrase })
     .addOperation(Operation.changeTrust({
       asset: AGT_ASSET,
     }))
@@ -72,3 +72,7 @@ async function addTrustline(userSecret) {
 }
 
 module.exports = { setupTrustlines, addTrustline, AGT_ASSET };
+
+if (require.main === module) {
+  setupTrustlines();
+}

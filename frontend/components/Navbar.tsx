@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu, X, Wallet, Activity,
-  ArrowUpDown, Droplets, BarChart3, Copy, CheckCircle2,
+  ArrowUpDown, Droplets, BarChart3, Copy, CheckCircle2, RefreshCw, Shield,
 } from 'lucide-react';
 import { useFreighter } from '@/hooks/useFreighter';
 import { floatUp } from '@/lib/animations';
+
+const ADMIN_ADDRESS = 'GBD43HIKH233XQ5K2FHCXASYP62243AUONKDRB3G2UTHK3R35PDZBXCX';
 
 const NAV_LINKS = [
   { href: '/',          label: 'Home',      icon: BarChart3 },
@@ -19,7 +21,8 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { isConnected, connect, disconnect, publicKey, network } = useFreighter();
+  const { isConnected, connect, disconnect, publicKey, network, isLoading } = useFreighter();
+  const isAdmin = isConnected && publicKey === ADMIN_ADDRESS;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -80,6 +83,24 @@ export function Navbar() {
                 </Link>
               );
             })}
+            {/* Admin link — only for admin wallet */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
+                  fontSize: 14, fontWeight: pathname === '/admin' ? 600 : 400,
+                  color: pathname === '/admin' ? 'white' : 'rgba(255,200,100,0.7)',
+                  background: pathname === '/admin' ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.05)',
+                  border: pathname === '/admin' ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(245,158,11,0.15)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Shield size={15} style={{ color: '#f59e0b' }} />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Wallet Area */}
@@ -123,10 +144,13 @@ export function Navbar() {
                 whileTap={{ scale: 0.97 }}
                 className="btn-primary"
                 onClick={connect}
+                disabled={isLoading}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 14, minHeight: 36 }}
               >
-                <Wallet size={16} />
-                Connect
+                {isLoading
+                  ? <><RefreshCw size={14} style={{ animation: 'spin 0.9s linear infinite' }} /> Connecting…</>
+                  : <><Wallet size={16} /> Connect</>
+                }
               </motion.button>
             )}
 

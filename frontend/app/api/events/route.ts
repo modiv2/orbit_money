@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const HORIZON = 'https://horizon-testnet.stellar.org';
-const CONTRACT = process.env.POOL_CONTRACT_ADDRESS || '';
+const CONTRACT = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS || '';
 
 function mapOpToEvent(op: Record<string, unknown>, idx: number) {
   const type = op.type as string;

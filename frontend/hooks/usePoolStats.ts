@@ -2,7 +2,7 @@
 import useSWR from 'swr';
 
 export const usePoolStats = () => {
-  const { data, isLoading } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     '/api/pool',
     (url) => fetch(url).then((res) => res.json()),
     { refreshInterval: 10000 }
@@ -15,5 +15,6 @@ export const usePoolStats = () => {
     xlmReserve: data?.xlmReserve || '0',
     agtReserve: data?.agtReserve || '0',
     isLoading,
+    mutate,
   };
 };

@@ -8,6 +8,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  ),
   title: "Orbit Money | Stellar DeFi",
   description: "Next-gen orbital DeFi on Stellar Testnet. Swap AGT, provide liquidity, earn yield — fully on-chain via Soroban.",
   openGraph: {

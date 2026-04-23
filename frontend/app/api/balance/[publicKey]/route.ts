@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const HORIZON = 'https://horizon-testnet.stellar.org';
-const ISSUER = process.env.STELLAR_ISSUER_PUBLIC || '';
+const ISSUER  = process.env.STELLAR_ISSUER_PUBLIC || process.env.NEXT_PUBLIC_AGT_ISSUER || '';
 
 export async function GET(
   _request: Request,
@@ -10,35 +10,31 @@ export async function GET(
   const { publicKey } = params;
 
   try {
-    const res = await fetch(`${HORIZON}/accounts/${publicKey}`, {
-      next: { revalidate: 8 },
-    });
+    // AGT is now a classic Stellar Asset (via SAC wrapper) — read everything from Horizon
+    const res = await fetch(`${HORIZON}/accounts/${publicKey}`, { next: { revalidate: 5 } });
 
     if (!res.ok) {
-      return NextResponse.json({ agtBalance: '0', xlmBalance: '0', hasTrustline: false });
+      return NextResponse.json({ agtBalance: '0', xlmBalance: '0', hasTrustline: false, agtLimit: '0' });
     }
 
     const account = await res.json();
-    const balances: Array<{
-      asset_type: string;
-      asset_code?: string;
-      asset_issuer?: string;
-      balance: string;
-      limit?: string;
-    }> = account.balances || [];
+    const balances: any[] = account.balances || [];
 
-    const xlmBal = balances.find((b) => b.asset_type === 'native');
-    const agtBal = balances.find(
+    // XLM
+    const xlmEntry = balances.find((b) => b.asset_type === 'native');
+    const xlmBalance = xlmEntry?.balance ?? '0';
+
+    // AGT (classic asset issued by ISSUER)
+    const agtEntry = balances.find(
       (b) => b.asset_code === 'AGT' && b.asset_issuer === ISSUER
     );
+    const hasTrustline = !!agtEntry;
+    const agtBalance   = agtEntry?.balance ?? '0';
+    const agtLimit     = agtEntry?.limit   ?? '0';
 
-    return NextResponse.json({
-      agtBalance: agtBal?.balance || '0',
-      agtLimit: agtBal?.limit || '0',
-      xlmBalance: xlmBal?.balance || '0',
-      hasTrustline: !!agtBal,
-    });
-  } catch {
-    return NextResponse.json({ agtBalance: '0', xlmBalance: '0', hasTrustline: false });
+    return NextResponse.json({ agtBalance, xlmBalance, hasTrustline, agtLimit });
+  } catch (err) {
+    console.error('Balance route error', err);
+    return NextResponse.json({ agtBalance: '0', xlmBalance: '0', hasTrustline: false, agtLimit: '0' });
   }
 }

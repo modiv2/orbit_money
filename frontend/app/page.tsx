@@ -1,4 +1,5 @@
 'use client';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -15,6 +16,10 @@ const FEATURES = [
 
 export default function HomePage() {
   const { isConnected, connect, publicKey, network } = useFreighter();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
 
   return (
     <main style={{ minHeight: '100vh', paddingBottom: 100 }}>

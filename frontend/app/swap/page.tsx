@@ -11,7 +11,7 @@ type TokenDir = 'AGT_TO_XLM' | 'XLM_TO_AGT';
 
 export default function SwapPage() {
   const { isConnected, connect, publicKey } = useFreighter();
-  const { agtBalance, xlmBalance } = useAGTBalance(publicKey);
+  const { agtBalance, xlmBalance, mutate } = useAGTBalance(publicKey);
   const { price } = useAGTPrice();
   const [dir, setDir] = useState<TokenDir>('AGT_TO_XLM');
   const [amountIn, setAmountIn] = useState('');
@@ -31,14 +31,73 @@ export default function SwapPage() {
     : '';
 
   const doSwap = async () => {
-    if (!isConnected) return connect();
+    if (!isConnected || !publicKey) return connect();
     if (!amountIn || parseFloat(amountIn) <= 0) return;
     setIsSwapping(true);
-    // In production: build Soroban tx, sign with Freighter, submit
-    await new Promise((r) => setTimeout(r, 1800));
-    setTxHash('demo_' + Date.now());
-    setIsSwapping(false);
-    setAmountIn('');
+    setTxHash('');
+
+    try {
+      const { Contract, nativeToScVal, Address, TransactionBuilder, Horizon, SorobanRpc } = await import('@stellar/stellar-sdk');
+      const { signTransaction } = await import('@stellar/freighter-api');
+
+      const rpcUrl = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+      const networkPassphrase = 'Test SDF Network ; September 2015'; // Networks.TESTNET
+      const poolContractId = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS;
+      const agtTokenId = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ADDRESS;
+      const xlmTokenId = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'; // native testnet XLM
+
+      if (!poolContractId) throw new Error("Liquidity Pool contract missing from env.");
+      if (!agtTokenId) throw new Error("AGT Token contract missing from env.");
+      
+      const server = new SorobanRpc.Server(rpcUrl, { allowHttp: true });
+      const contract = new Contract(poolContractId);
+      const tokenInId = dir === 'AGT_TO_XLM' ? agtTokenId : xlmTokenId;
+
+      // amount_in is in stroops (10^7)
+      const amountInStroops = Math.floor(parseFloat(amountIn) * 1e7);
+      
+      const swapOp = contract.call('swap',
+        new Address(publicKey).toScVal(),
+        new Address(tokenInId).toScVal(),
+        nativeToScVal(amountInStroops, { type: 'i128' })
+      );
+
+      const horizon = new Horizon.Server('https://horizon-testnet.stellar.org');
+      const account = await horizon.loadAccount(publicKey);
+      
+      let tx = new TransactionBuilder(account, {
+        fee: '10000', // BASE_FEE is 100, Soroban requires higher fee limits
+        networkPassphrase,
+      })
+      .addOperation(swapOp)
+      .setTimeout(180)
+      .build();
+
+      tx = await server.prepareTransaction(tx);
+
+      const signedResult = await signTransaction(tx.toXDR(), { networkPassphrase });
+      const signedXDR = typeof signedResult === 'string' ? signedResult : (signedResult as any)?.signedTxXdr ?? '';
+      if (!signedXDR) throw new Error('Freighter did not return a signed transaction.');
+
+      const signedTx = TransactionBuilder.fromXDR(signedXDR, networkPassphrase);
+      const response = await server.sendTransaction(signedTx);
+      
+      if (response.status === 'ERROR') {
+        throw new Error('Transaction submission failed.');
+      }
+
+      setTxHash(response.hash);
+      
+      // Wait for ledger confirmation (simple delay)
+      await new Promise(r => setTimeout(r, 4000));
+      await mutate(); // Refresh balances!
+    } catch (e: any) {
+      console.error("Swap error:", e);
+      alert("Swap failed: " + (e.message || String(e)));
+    } finally {
+      setIsSwapping(false);
+      setAmountIn('');
+    }
   };
 
   return (

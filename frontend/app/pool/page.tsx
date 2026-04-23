@@ -9,8 +9,8 @@ import { BottomNav } from '@/components/BottomNav';
 
 export default function PoolPage() {
   const { isConnected, connect, publicKey } = useFreighter();
-  const { agtBalance, xlmBalance } = useAGTBalance(publicKey);
-  const { tvl, xlmReserve, agtReserve, apy, isLoading } = usePoolStats();
+  const { agtBalance, xlmBalance, mutate: mutateAGT } = useAGTBalance(publicKey);
+  const { tvl, xlmReserve, agtReserve, apy, isLoading, mutate: mutatePool } = usePoolStats();
   const [tab, setTab] = useState<'add' | 'remove'>('add');
   const [agtAmt, setAgtAmt] = useState('');
   const [xlmAmt, setXlmAmt] = useState('');
@@ -28,13 +28,82 @@ export default function PoolPage() {
   };
 
   const submit = async () => {
-    if (!isConnected) return connect();
+    if (!isConnected || !publicKey) return connect();
+    if (tab === 'add' && (!agtAmt || parseFloat(agtAmt) <= 0)) return;
+    if (tab === 'remove' && (!lpAmt || parseFloat(lpAmt) <= 0)) return;
+    
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setSuccessMsg(tab === 'add' ? 'Liquidity added successfully!' : 'Liquidity removed!');
-    setIsSubmitting(false);
-    setAgtAmt(''); setXlmAmt(''); setLpAmt('');
-    setTimeout(() => setSuccessMsg(''), 5000);
+    setSuccessMsg('');
+
+    try {
+      const { Contract, nativeToScVal, Address, TransactionBuilder, Horizon, SorobanRpc } = await import('@stellar/stellar-sdk');
+      const { signTransaction } = await import('@stellar/freighter-api');
+
+      const rpcUrl = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+      const networkPassphrase = 'Test SDF Network ; September 2015'; // Networks.TESTNET
+      const poolContractId = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS;
+
+      if (!poolContractId) throw new Error("Pool contract address missing from env.");
+      
+      const server = new SorobanRpc.Server(rpcUrl, { allowHttp: true });
+      const contract = new Contract(poolContractId);
+      
+      let operation;
+
+      if (tab === 'add') {
+        const agtStroops = Math.floor(parseFloat(agtAmt) * 1e7);
+        const xlmStroops = Math.floor(parseFloat(xlmAmt) * 1e7);
+        operation = contract.call('add_liquidity',
+          new Address(publicKey).toScVal(),
+          nativeToScVal(agtStroops, { type: 'i128' }),
+          nativeToScVal(xlmStroops, { type: 'i128' })
+        );
+      } else {
+        const lpStroops = Math.floor(parseFloat(lpAmt) * 1e7);
+        operation = contract.call('remove_liquidity',
+          new Address(publicKey).toScVal(),
+          nativeToScVal(lpStroops, { type: 'i128' })
+        );
+      }
+
+      const horizon = new Horizon.Server('https://horizon-testnet.stellar.org');
+      const account = await horizon.loadAccount(publicKey);
+      
+      let tx = new TransactionBuilder(account, {
+        fee: '10000',
+        networkPassphrase,
+      })
+      .addOperation(operation)
+      .setTimeout(180)
+      .build();
+
+      tx = await server.prepareTransaction(tx);
+
+      const signedResult = await signTransaction(tx.toXDR(), { networkPassphrase });
+      const signedXDR = typeof signedResult === 'string' ? signedResult : (signedResult as any)?.signedTxXdr ?? '';
+      if (!signedXDR) throw new Error('Freighter did not return a signed transaction.');
+
+      const signedTx = TransactionBuilder.fromXDR(signedXDR, networkPassphrase);
+      const response = await server.sendTransaction(signedTx);
+      
+      if (response.status === 'ERROR') {
+        throw new Error('Transaction submission failed.');
+      }
+
+      setSuccessMsg(tab === 'add' ? `Added liquidity successfully!` : `Removed liquidity successfully!`);
+      setAgtAmt(''); setXlmAmt(''); setLpAmt('');
+      
+      // Wait for ledger confirmation and refresh stats
+      await new Promise(r => setTimeout(r, 4000));
+      await mutateAGT();
+      await mutatePool();
+    } catch (e: any) {
+      console.error("Pool error:", e);
+      alert("Pool transaction failed: " + (e.message || String(e)));
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setSuccessMsg(''), 5000);
+    }
   };
 
   const statStyle = {

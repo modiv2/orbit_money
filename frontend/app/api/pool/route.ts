@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { SorobanRpc, Contract, Networks, xdr } from '@stellar/stellar-sdk';
 
 const RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
-const POOL_CONTRACT = process.env.POOL_CONTRACT_ADDRESS || '';
+const POOL_CONTRACT = process.env.NEXT_PUBLIC_POOL_CONTRACT_ADDRESS || '';
 const XLM_PRICE_USD = 0.12;
 
 export async function GET() {

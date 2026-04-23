@@ -2,7 +2,7 @@
 import useSWR from 'swr';
 
 export const useAGTBalance = (publicKey: string) => {
-  const { data, isLoading } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     publicKey ? `/api/balance/${publicKey}` : null,
     (url) => fetch(url).then((res) => res.json()),
     { refreshInterval: 8000 }
@@ -13,5 +13,6 @@ export const useAGTBalance = (publicKey: string) => {
     xlmBalance: data?.xlmBalance || '0',
     hasTrustline: data?.hasTrustline || false,
     isLoading,
+    mutate,
   };
 };

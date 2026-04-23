@@ -79,10 +79,17 @@ async function getXlmBalance(pubKey) {
   }
 }
 
-/** Soroban CLI shorthand. */
+/** Stellar CLI shorthand. */
 function soroban(subCmd) {
-  const cmd = `soroban ${subCmd} --network ${NETWORK} --rpc-url ${RPC_URL} --network-passphrase "${NETWORK_PASSPHRASE}"`;
-  return run(cmd);
+  const cmd = `./bin/stellar ${subCmd}`;
+  return run(cmd, {
+    env: {
+      ...process.env,
+      STELLAR_NETWORK: NETWORK,
+      STELLAR_RPC_URL: RPC_URL,
+      STELLAR_NETWORK_PASSPHRASE: NETWORK_PASSPHRASE,
+    }
+  });
 }
 
 /** Deploy a WASM file and return contract ID. */
@@ -125,17 +132,45 @@ async function step1_fund() {
   }
 }
 
-// ─── STEP 2 — Deploy contracts ────────────────────────────────────────────────
-function step2_deploy() {
-  console.log('\n═══ STEP 2 — Deploy Soroban contracts ═══');
+// ─── STEP 2 — Mint Classic AGT via Trustline Script ────────────────────────
+async function step2_mint_classic() {
+  console.log('\n═══ STEP 2 — Mint Classic AGT ═══');
+  log('Running setup-trustlines.js to mint classic AGT to Distributor…');
+  try {
+    // Just run the external script which does changeTrust + Payment
+    const output = run('node scripts/setup-trustlines.js');
+    console.log(output);
+    ok('Classic AGT Minted successfully.');
+  } catch (e) {
+    fail(`Classic mint failed: ${e.message}`);
+  }
+}
+
+// ─── STEP 3 — Deploy contracts ────────────────────────────────────────────────
+function step3_deploy() {
+  console.log('\n═══ STEP 3 — Deploy Soroban contracts ═══');
+
+  // Deploy SAC for AGT
+  log(`Deploying SAC Wrapper for AGT:${ISSUER_PUB}…`);
+  let agtId;
+  try {
+    agtId = soroban(`contract asset deploy --asset AGT:${ISSUER_PUB} --source-account ${ISSUER_SECRET}`);
+    ok(`AGT SAC deployed → ${agtId}`);
+  } catch (e) {
+    if (e.message.includes('ExistingValue')) {
+      agtId = soroban(`contract id asset --asset AGT:${ISSUER_PUB}`).trim();
+      ok(`AGT SAC already exists → ${agtId}`);
+    } else {
+      fail(`SAC deploy failed: ${e.message}`);
+    }
+  }
 
   const contracts = [
-    { name: 'AGT Token',      wasm: path.join(WASM_DIR, 'agt_token.wasm') },
-    { name: 'Liquidity Pool', wasm: path.join(WASM_DIR, 'liquidity_pool.wasm') },
-    { name: 'Bridge',         wasm: path.join(WASM_DIR, 'bridge.wasm') },
+    { name: 'Liquidity Pool', wasm: path.join(WASM_DIR, 'liquidity_pool.optimized.wasm') },
+    { name: 'Bridge',         wasm: path.join(WASM_DIR, 'bridge.optimized.wasm') },
   ];
 
-  const ids = {};
+  const ids = { 'AGT Token': agtId };
   for (const { name, wasm } of contracts) {
     if (!fs.existsSync(wasm)) {
       fail(`WASM not found: ${wasm}\nRun: make build-contracts`);
@@ -157,27 +192,21 @@ function step2_deploy() {
   };
 }
 
-// ─── STEP 3 — Initialize contracts ───────────────────────────────────────────
-function step3_initialize(agtId, poolId, bridgeId) {
-  console.log('\n═══ STEP 3 — Initialize contracts ═══');
+// ─── STEP 4 — Initialize contracts ───────────────────────────────────────────
+function step4_initialize(agtId, poolId, bridgeId) {
+  console.log('\n═══ STEP 4 — Initialize contracts ═══');
   const hashes = {};
 
-  // AGT Token
-  log('Initializing AGT Token…');
-  try {
-    hashes.agtInit = invoke(agtId, ISSUER_SECRET, 'initialize',
-      `--admin ${ISSUER_PUB} --name "Orbit Money Token" --symbol "AGT" --decimals 7`
-    );
-    ok(`AGT initialized — ${hashes.agtInit}`);
-  } catch (e) {
-    fail(`AGT init failed: ${e.message}`);
-  }
+  // AGT Token (SAC Wrapper) doesn't need initialization!
+  hashes.agtInit = 'SAC wrappers do not require initialization';
+  ok('AGT SAC ready.');
 
   // Liquidity Pool
   log('Initializing Liquidity Pool…');
   try {
+    const XLM_CONTRACT_ID = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'; // native testnet XLM
     hashes.poolInit = invoke(poolId, ISSUER_SECRET, 'initialize',
-      `--token_contract ${agtId} --admin ${ISSUER_PUB}`
+      `--token_contract ${agtId} --xlm_contract ${XLM_CONTRACT_ID} --admin ${ISSUER_PUB}`
     );
     ok(`Pool initialized — ${hashes.poolInit}`);
   } catch (e) {
@@ -198,29 +227,12 @@ function step3_initialize(agtId, poolId, bridgeId) {
   return hashes;
 }
 
-// ─── STEP 4 — Mint initial supply ────────────────────────────────────────────
-function step4_mint(agtId) {
-  console.log('\n═══ STEP 4 — Mint initial supply ═══');
-  // 1,000,000 AGT × 10^7 = 10_000_000_000_000
-  const MINT_AMOUNT = '10000000000000';
-  log(`Minting ${MINT_AMOUNT} stroops (1,000,000 AGT) → ${DISTRIBUTOR_PUB.slice(0, 8)}…`);
-  try {
-    const txHash = invoke(agtId, ISSUER_SECRET, 'mint',
-      `--to ${DISTRIBUTOR_PUB} --amount ${MINT_AMOUNT}`
-    );
-    ok(`Minted — ${txHash}`);
-    return txHash;
-  } catch (e) {
-    fail(`Mint failed: ${e.message}`);
-  }
-}
-
 // ─── STEP 5 — Add initial liquidity ──────────────────────────────────────────
 function step5_liquidity(poolId) {
   console.log('\n═══ STEP 5 — Add initial liquidity ═══');
-  // 100,000 AGT (×10^7) and 50,000 XLM (×10^7)
+  // 100,000 AGT (×10^7) and 4,000 XLM (×10^7)
   const TOKEN_AMT = '1000000000000';  // 100,000 AGT
-  const XLM_AMT   = '500000000000';   // 50,000 XLM equivalent
+  const XLM_AMT   = '40000000000';    // 4,000 XLM
 
   log(`Adding liquidity: ${TOKEN_AMT} AGT stroops + ${XLM_AMT} XLM stroops…`);
   try {
@@ -282,16 +294,17 @@ async function main() {
   console.log(`  Network:     ${NETWORK} (${RPC_URL})`);
 
   await step1_fund();
+  await step2_mint_classic();
 
-  const { agtId, poolId, bridgeId } = step2_deploy();
-  const { agtInit, poolInit, bridgeInit } = step3_initialize(agtId, poolId, bridgeId);
-  const mintTxHash  = step4_mint(agtId);
+  const { agtId, poolId, bridgeId } = step3_deploy();
+  const { agtInit, poolInit, bridgeInit } = step4_initialize(agtId, poolId, bridgeId);
   const lpTxHash    = step5_liquidity(poolId);
 
   const record = step6_save({
     agtId, poolId, bridgeId,
     agtInit, poolInit, bridgeInit,
-    mintTxHash, lpTxHash,
+    mintTxHash: 'Minted via setup-trustlines.js',
+    lpTxHash,
   });
 
   console.log('\n╔════════════════════════════════════════════╗');

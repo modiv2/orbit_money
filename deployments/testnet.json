@@ -1,8 +1,28 @@
 {
   "network": "testnet",
-  "deployedAt": "",
-  "issuerPublicKey": "",
-  "AGTToken": { "contractId": "", "wasm": "agt_token.wasm" },
-  "LiquidityPool": { "contractId": "", "wasm": "liquidity_pool.wasm" },
-  "Bridge": { "contractId": "", "wasm": "bridge.wasm" }
+  "deployedAt": "2026-04-22T23:51:09.269Z",
+  "issuerPublicKey": "GBALPCSLWTTOVYUJ35KSDBOQETFDFAGKMQOYN76OWLY7QCIHLQUHINBS",
+  "distributorPublicKey": "GB5GG7YDOJ6EOF46LFFJOB4N2S67MFZOERCC5N762MDKJYJ5CIORYCAE",
+  "agtAsset": "AGT:GBALPCSLWTTOVYUJ35KSDBOQETFDFAGKMQOYN76OWLY7QCIHLQUHINBS",
+  "AGTToken": {
+    "contractId": "CCHLK4RHSS27U4K6VRIP6QW2N5IGBJJES4GA4CI3RRUGP54G4FH5HL7P",
+    "wasmHash": "",
+    "initTxHash": "SAC wrappers do not require initialization"
+  },
+  "LiquidityPool": {
+    "contractId": "CCQZXG3QGFPLRS6LJJ4XALJGUGVNLISYN6BJSVOH57ED6FYJH7KGKXAR",
+    "wasmHash": "",
+    "initTxHash": ""
+  },
+  "Bridge": {
+    "contractId": "CBMGE6BSHIGBXAUMW32D542POCBMI3DHP7ZZGI6RTGPRECJQA3S5ZFDI",
+    "wasmHash": "",
+    "initTxHash": ""
+  },
+  "trustline": {
+    "asset": "AGT",
+    "issuer": "GBALPCSLWTTOVYUJ35KSDBOQETFDFAGKMQOYN76OWLY7QCIHLQUHINBS",
+    "limit": "1000000",
+    "setupTxHash": ""
+  }
 }

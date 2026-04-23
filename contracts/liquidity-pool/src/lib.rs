@@ -10,6 +10,7 @@ mod test;
 #[derive(Clone)]
 enum DataKey {
     TokenA, // AGT Token
+    TokenB, // XLM Token
     Admin,
     ReserveA,
     ReserveB,
@@ -22,11 +23,12 @@ pub struct LiquidityPool;
 
 #[contractimpl]
 impl LiquidityPool {
-    pub fn initialize(env: Env, token_contract: Address, admin: Address) {
+    pub fn initialize(env: Env, token_contract: Address, xlm_contract: Address, admin: Address) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::TokenA, &token_contract);
+        env.storage().instance().set(&DataKey::TokenB, &xlm_contract);
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::ReserveA, &0i128);
         env.storage().instance().set(&DataKey::ReserveB, &0i128);
@@ -37,17 +39,21 @@ impl LiquidityPool {
         provider.require_auth();
 
         let token_a: Address = env.storage().instance().get(&DataKey::TokenA).unwrap();
+        let token_b: Address = env.storage().instance().get(&DataKey::TokenB).unwrap();
         
         // Transfer AGT from provider to pool
-        // Using invoke_contract as requested
         env.invoke_contract::<()>(
             &token_a,
             &Symbol::new(&env, "transfer"),
             (provider.clone(), env.current_contract_address(), token_amount).into_val(&env),
         );
 
-        // Note: Real implementation would handle native XLM transfer here.
-        // For this demo, we track it via internal reserves.
+        // Transfer XLM from provider to pool
+        env.invoke_contract::<()>(
+            &token_b,
+            &Symbol::new(&env, "transfer"),
+            (provider.clone(), env.current_contract_address(), xlm_amount).into_val(&env),
+        );
 
         let reserve_a: i128 = env.storage().instance().get(&DataKey::ReserveA).unwrap();
         let reserve_b: i128 = env.storage().instance().get(&DataKey::ReserveB).unwrap();
@@ -55,7 +61,6 @@ impl LiquidityPool {
         let lp_to_mint = if reserve_a == 0 {
             token_amount // Initial liquidity
         } else {
-            // Simplistic LP calculation
             (token_amount * 100) / reserve_a
         };
 
@@ -90,12 +95,20 @@ impl LiquidityPool {
         let xlm_out = (lp_amount * reserve_b) / total_lp;
 
         let token_a: Address = env.storage().instance().get(&DataKey::TokenA).unwrap();
+        let token_b: Address = env.storage().instance().get(&DataKey::TokenB).unwrap();
         
         // Transfer AGT back to provider
         env.invoke_contract::<()>(
             &token_a,
             &Symbol::new(&env, "transfer"),
             (env.current_contract_address(), provider.clone(), token_out).into_val(&env),
+        );
+
+        // Transfer XLM back to provider
+        env.invoke_contract::<()>(
+            &token_b,
+            &Symbol::new(&env, "transfer"),
+            (env.current_contract_address(), provider.clone(), xlm_out).into_val(&env),
         );
 
         env.storage().instance().set(&DataKey::ReserveA, &(reserve_a - token_out));
@@ -113,6 +126,7 @@ impl LiquidityPool {
         user.require_auth();
 
         let token_a: Address = env.storage().instance().get(&DataKey::TokenA).unwrap();
+        let token_b: Address = env.storage().instance().get(&DataKey::TokenB).unwrap();
         let reserve_a: i128 = env.storage().instance().get(&DataKey::ReserveA).unwrap();
         let reserve_b: i128 = env.storage().instance().get(&DataKey::ReserveB).unwrap();
 
@@ -129,6 +143,13 @@ impl LiquidityPool {
                 &Symbol::new(&env, "transfer"),
                 (user.clone(), env.current_contract_address(), amount_in).into_val(&env),
             );
+
+            // Transfer XLM out
+            env.invoke_contract::<()>(
+                &token_b,
+                &Symbol::new(&env, "transfer"),
+                (env.current_contract_address(), user.clone(), out).into_val(&env),
+            );
             
             (out, new_reserve_a, new_reserve_b)
         } else {
@@ -137,6 +158,13 @@ impl LiquidityPool {
             let new_reserve_b = reserve_b + amount_in;
             let new_reserve_a = k / new_reserve_b;
             let out = reserve_a - new_reserve_a;
+
+            // Transfer XLM in
+            env.invoke_contract::<()>(
+                &token_b,
+                &Symbol::new(&env, "transfer"),
+                (user.clone(), env.current_contract_address(), amount_in).into_val(&env),
+            );
 
             // Transfer AGT out
             env.invoke_contract::<()>(

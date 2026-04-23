@@ -56,7 +56,7 @@ jobs:
           workspaces: contracts
 
       - name: Install soroban-cli
-        run: cargo install --locked soroban-cli --features opt
+        run: cargo install --locked soroban-cli
 
       - name: Run all contract tests
         run: cd contracts && cargo test --all -- --nocapture
@@ -221,7 +221,7 @@ jobs:
           path: contracts/wasm/
 
       - name: Install soroban-cli
-        run: cargo install --locked soroban-cli --features opt
+        run: cargo install --locked soroban-cli
 
       - name: Install Node dependencies
         run: npm install @stellar/stellar-sdk

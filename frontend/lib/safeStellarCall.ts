@@ -16,7 +16,7 @@ function extractMessage(err: unknown): string {
   if (!err) return 'Unknown error';
   if (typeof err === 'string') return err;
   if (err instanceof Error) {
-    const horizonExtras = (err as unknown as Record<string, unknown>)?.response?.data?.extras;
+    const horizonExtras = (err as any)?.response?.data?.extras;
     if (horizonExtras) {
       const codes = (horizonExtras as Record<string, unknown>).result_codes;
       return JSON.stringify(codes);

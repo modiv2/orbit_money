@@ -31,7 +31,12 @@ fn test_mint() {
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     client.mint(&user, &1000);
 
     assert_eq!(client.balance(&user), 1000);
@@ -47,7 +52,12 @@ fn test_mint_unauthorized() {
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     // User tries to mint without admin auth
     client.mint(&user, &1000);
 }
@@ -60,13 +70,18 @@ fn test_transfer_fee() {
     let sender = Address::generate(&env);
     let receiver = Address::generate(&env);
     let treasury = Address::generate(&env);
-    
+
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     client.set_treasury(&treasury);
-    
+
     client.mint(&sender, &1000);
     client.transfer(&sender, &receiver, &100);
 
@@ -87,7 +102,12 @@ fn test_burn() {
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     client.mint(&user, &1000);
     client.burn(&user, &400);
 
@@ -104,7 +124,12 @@ fn test_set_treasury() {
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     client.set_treasury(&treasury);
     // Success means no panic
 }
@@ -118,7 +143,12 @@ fn test_events_mint() {
     let contract_id = env.register_contract(None, AgtToken);
     let client = AgtTokenClient::new(&env, &contract_id);
 
-    client.initialize(&admin, &String::from_str(&env, "A"), &String::from_str(&env, "B"), &7);
+    client.initialize(
+        &admin,
+        &String::from_str(&env, "A"),
+        &String::from_str(&env, "B"),
+        &7,
+    );
     client.mint(&user, &1000);
 
     let last_event = env.events().all().last().unwrap();

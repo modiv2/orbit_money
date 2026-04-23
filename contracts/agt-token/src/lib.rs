@@ -46,15 +46,16 @@ impl AgtToken {
         admin.require_auth();
 
         let balance = Self::balance(env.clone(), to.clone());
-        env.storage().persistent().set(&DataKey::Balance(to.clone()), &(balance + amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to.clone()), &(balance + amount));
 
         let total_supply = Self::total_supply(env.clone());
-        env.storage().instance().set(&DataKey::TotalSupply, &(total_supply + amount));
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(total_supply + amount));
 
-        env.events().publish(
-            (symbol_short!("mint"), to),
-            amount,
-        );
+        env.events().publish((symbol_short!("mint"), to), amount);
     }
 
     pub fn burn(env: Env, from: Address, amount: i128) {
@@ -64,15 +65,16 @@ impl AgtToken {
         if balance < amount {
             panic!("insufficient balance");
         }
-        env.storage().persistent().set(&DataKey::Balance(from.clone()), &(balance - amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(balance - amount));
 
         let total_supply = Self::total_supply(env.clone());
-        env.storage().instance().set(&DataKey::TotalSupply, &(total_supply - amount));
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(total_supply - amount));
 
-        env.events().publish(
-            (symbol_short!("burn"), from),
-            amount,
-        );
+        env.events().publish((symbol_short!("burn"), from), amount);
     }
 
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
@@ -88,35 +90,45 @@ impl AgtToken {
         let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
 
         // Update sender balance
-        env.storage().persistent().set(&DataKey::Balance(from.clone()), &(balance_from - amount));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(balance_from - amount));
 
         // Update receiver balance
         let balance_to = Self::balance(env.clone(), to.clone());
-        env.storage().persistent().set(&DataKey::Balance(to.clone()), &(balance_to + amount_after_fee));
+        env.storage().persistent().set(
+            &DataKey::Balance(to.clone()),
+            &(balance_to + amount_after_fee),
+        );
 
         // Update treasury balance
         if fee > 0 {
             let balance_treasury = Self::balance(env.clone(), treasury.clone());
-            env.storage().persistent().set(&DataKey::Balance(treasury.clone()), &(balance_treasury + fee));
-            
-            env.events().publish(
-                (Symbol::new(&env, "FeeCollected"), treasury),
-                fee,
+            env.storage().persistent().set(
+                &DataKey::Balance(treasury.clone()),
+                &(balance_treasury + fee),
             );
+
+            env.events()
+                .publish((Symbol::new(&env, "FeeCollected"), treasury), fee);
         }
 
-        env.events().publish(
-            (symbol_short!("transfer"), from, to),
-            amount_after_fee,
-        );
+        env.events()
+            .publish((symbol_short!("transfer"), from, to), amount_after_fee);
     }
 
     pub fn balance(env: Env, id: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Balance(id)).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Balance(id))
+            .unwrap_or(0)
     }
 
     pub fn total_supply(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0)
     }
 
     pub fn decimals(env: Env) -> u32 {

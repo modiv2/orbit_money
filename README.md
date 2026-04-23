@@ -1,465 +1,163 @@
-# Orbit Money
+<div align="center">
 
-> DeFi liquidity protocol on Stellar — swap AGT tokens, provide liquidity, and earn yield. Powered by Soroban smart contracts with trustline-gated token access.
+![Orbit Money Banner](file:///Users/anurag/.gemini/antigravity/brain/f1acb595-908a-4eac-9fb0-fc384b5d0a16/orbit_money_banner_1776938139180.png)
 
-[![CI](https://github.com/{YOUR_USERNAME}/orbit-money/actions/workflows/ci.yml/badge.svg)](https://github.com/{YOUR_USERNAME}/orbit-money/actions)
-[![Security](https://github.com/{YOUR_USERNAME}/orbit-money/actions/workflows/security.yml/badge.svg)](https://github.com/{YOUR_USERNAME}/orbit-money/actions)
+# 🌌 Orbit Money
 
----
+**The Next-Generation Liquidity Protocol on Stellar.**
 
-## Live demo
+[![CI/CD](https://github.com/modiv2/orbit_money/actions/workflows/ci.yml/badge.svg)](https://github.com/modiv2/orbit_money/actions)
+[![Stellar](https://img.shields.io/badge/Network-Stellar_Testnet-blue?logo=stellar)](https://stellar.org)
+[![Soroban](https://img.shields.io/badge/Smart_Contracts-Soroban-purple?logo=rust)](https://soroban.stellar.org)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js_14-black?logo=next.js)](https://nextjs.org)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**[https://orbit-money.vercel.app](https://orbit-money.vercel.app)**
+[Live Demo](https://orbit-money.vercel.app) · [Report Bug](https://github.com/modiv2/orbit_money/issues) · [Request Feature](https://github.com/modiv2/orbit_money/issues)
 
----
-
-## Screenshots
-
-### Mobile view (375px)
-
-![Mobile view](./screenshots/mobile-375.png)
-_Full mobile layout: bottom nav, TrustlineCard, SwapCard at 375px_
-
-### CI/CD pipeline — GitHub Actions
-
-![CI/CD pipeline](./screenshots/ci-pipeline.png)
-_7-job pipeline: lint → test → build → deploy-preview → deploy-production_
+</div>
 
 ---
 
-## Contract addresses — Stellar Testnet
+## 🚀 Overview
 
-| Contract | Contract ID | Init Tx Hash |
-|---|---|---|
-| AGT Token (Soroban) | `{FILL_AFTER_DEPLOY}` | `{FILL_AFTER_DEPLOY}` |
-| Liquidity Pool | `{FILL_AFTER_DEPLOY}` | `{FILL_AFTER_DEPLOY}` |
-| Bridge | `{FILL_AFTER_DEPLOY}` | `{FILL_AFTER_DEPLOY}` |
+Orbit Money is a decentralized liquidity protocol built on the **Stellar Blockchain** using **Soroban Smart Contracts**. It allows users to swap assets, provide liquidity to automated market makers (AMM), and earn yields through a streamlined, premium user interface.
 
----
+### ✨ Key Features
 
-## Token details
-
-| Field | Value |
-|---|---|
-| Token name | Orbit Money Token |
-| Symbol | AGT |
-| Decimals | 7 |
-| Total supply | 1,000,000 AGT |
-| Issuer address | `{FILL_AFTER_DEPLOY}` |
-| Asset string | `AGT:{FILL_AFTER_DEPLOY}` |
-| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/asset/AGT-{FILL_AFTER_DEPLOY}) |
+-   **⚡ Seamless Swaps:** Instant AGT ↔ XLM swaps powered by an efficient AMM.
+-   **💧 Liquidity Pools:** Provide liquidity and earn fees from every transaction.
+-   **📈 Real-time Analytics:** Live price feeds and transaction streams directly from contract events.
+-   **🛡️ Trustline-Gated Access:** Integrated Stellar trustline management for secure token interactions.
+-   **✨ Premium UI:** A futuristic, glassmorphic design built with Framer Motion and Lucide icons.
 
 ---
 
-## Trustline setup
+## 📸 Visual Showcase
 
-AGT is a custom Stellar asset. Every wallet must establish a trustline before receiving AGT.
+### 📱 Mobile Experience
+![Mobile Dashboard Placeholder](https://via.placeholder.com/800x400/0f172a/6366f1?text=Mobile+Dashboard+Preview)
+*Optimized for mobile-first interaction with a persistent bottom navigation and real-time balance updates.*
 
-**Automatic (via app):**
-1. Connect Freighter wallet
-2. Click **"Add Trustline"** on the orange warning banner
-3. Approve the transaction in Freighter
+### 🔄 Advanced Swaps
+![Swap UI Placeholder](https://via.placeholder.com/800x400/0f172a/8b5cf6?text=Swap+Interface+Preview)
+*Precision swapping with slippage protection and live rate calculations from pool reserves.*
 
-**Manual (via Stellar Laboratory):**
-```
-Asset code:   AGT
-Asset issuer: {FILL_AFTER_DEPLOY}
-Limit:        1000000
-```
-
-**Via script:**
-```bash
-STELLAR_ISSUER_SECRET=S... node scripts/setup-trustlines.js
-```
-
-**Check existing trustline:**
-```bash
-node scripts/check-trustline.js G...YOUR_PUBLIC_KEY
-```
+### 🌊 Liquidity Provision
+![Liquidity Pool Placeholder](https://via.placeholder.com/800x400/0f172a/3b82f6?text=Liquidity+Pool+Preview)
+*Manage your positions with ease. Detailed pool statistics and APY tracking.*
 
 ---
 
-## Inter-contract call flow
+## 🎥 Video Demonstration
 
-```
-User → Bridge.batch_operation(amount)
-         ├─ env.invoke_contract() → LiquidityPool.swap(user, token_in, amount)
-         │     └─ env.invoke_contract() → AGTToken.transfer(pool, user, amount_out)
-         └─ env.invoke_contract() → AGTToken.transfer(user, admin, fee)
-```
-
-The `Bridge` contract demonstrates Soroban inter-contract calls — a single user transaction triggers atomic execution across all three contracts.
+[![Orbit Money Demo Placeholder](https://via.placeholder.com/800x450/0f172a/ffffff?text=Click+to+Watch+Orbit+Money+Demo)](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+*A walkthrough of the full protocol flow: connecting wallet, adding trustline, requesting test AGT, and providing liquidity.*
 
 ---
 
-## Architecture
+## 🛠️ Architecture
 
-```
-Frontend (Next.js 14)
-  ├─ Freighter wallet     (@stellar/freighter-api)
-  ├─ SWR polling          (Horizon API + Soroban RPC, 2-10s refresh)
-  ├─ framer-motion        (Zero-G animations, zeroG / stagger / slideIn)
-  └─ lucide-react         (ArrowUpDown, Droplets, Activity, Wallet, …)
-
-Stellar Testnet
-  ├─ AGT Token contract   (Soroban, SEP-41, 1% fee on transfer)
-  ├─ Liquidity Pool       (Soroban, AMM x*y=k)
-  └─ Bridge contract      (Soroban, inter-contract batch ops)
-
-Horizon API
-  └─ https://horizon-testnet.stellar.org
-
-Soroban RPC
-  └─ https://soroban-testnet.stellar.org
+```mermaid
+graph TD
+    User((User)) -->|Connects| Wallet[Freighter Wallet]
+    Wallet -->|Signs| TX[Stellar Transaction]
+    TX -->|Submits| RPC[Soroban RPC]
+    
+    subgraph "Soroban Smart Contracts"
+        LP[Liquidity Pool Contract]
+        Token[AGT Token Contract]
+        Bridge[Bridge Contract]
+    end
+    
+    RPC --> LP
+    LP --> Token
+    Bridge --> LP
+    
+    subgraph "Frontend Layer"
+        Next[Next.js 14 App Router]
+        SWR[SWR Real-time Polling]
+        Motion[Framer Motion Animations]
+    end
+    
+    Next -->|Queries| Horizon[Stellar Horizon API]
+    Next -->|Fetches| RPC
+    SWR -->|Polls| NextAPI[Next.js API Routes]
 ```
 
 ---
 
-## Tech stack
+## 🏗️ Technical Stack
 
-| Layer | Technology |
-|---|---|
-| Contracts | Rust, Soroban SDK 21, soroban-token-sdk 21 |
-| Token standard | SEP-41 (Stellar) |
-| Frontend framework | Next.js 14 (App Router) |
-| Styling | Vanilla CSS (glassmorphism, CSS variables) |
-| Wallet | Freighter (`@stellar/freighter-api`) |
-| Chain SDK | `@stellar/stellar-sdk` |
-| Data streaming | SWR (`refreshInterval`: 2000–10000ms) |
-| Animations | framer-motion (Zero-G engine) |
-| Icons | lucide-react |
-| CI/CD | GitHub Actions (7-job pipeline) |
-| Deployment | Vercel |
-| Security | cargo-audit (weekly cron) |
+-   **Contracts:** Rust, Soroban SDK v21
+-   **Frontend:** Next.js 14, TypeScript, Vanilla CSS
+-   **State Management:** SWR (Real-time polling)
+-   **Animations:** Framer Motion
+-   **Icons:** Lucide React
+-   **Backend:** Next.js Edge Functions (API Routes)
+-   **Infrastructure:** GitHub Actions (CI/CD), Vercel (Deployment)
 
 ---
 
-## Project structure
-
-```
-antigravity/
-├── contracts/
-│   ├── Cargo.toml              # workspace
-│   ├── agt-token/
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs          # SEP-41 token, 1% treasury fee
-│   │       └── test.rs         # 8 tests
-│   ├── liquidity-pool/
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs          # AMM (x*y=k), inter-contract calls
-│   │       └── test.rs         # 6 tests
-│   └── bridge/
-│       ├── Cargo.toml
-│       └── src/
-│           ├── lib.rs          # batch_operation, 2x inter-contract
-│           └── test.rs         # 3 tests
-├── frontend/
-│   ├── app/
-│   │   ├── layout.tsx          # SWR provider + Navbar
-│   │   ├── globals.css         # design tokens, glass cards
-│   │   ├── page.tsx            # Hero + StatsBar + feature cards
-│   │   ├── swap/page.tsx       # SwapCard AGT↔XLM
-│   │   ├── pool/page.tsx       # Add/Remove liquidity
-│   │   ├── dashboard/page.tsx  # Balances + TrustlineCard + EventFeed
-│   │   └── api/
-│   │       ├── events/route.ts
-│   │       ├── price/route.ts
-│   │       ├── pool/route.ts
-│   │       └── balance/[publicKey]/route.ts
-│   ├── components/
-│   │   ├── Navbar.tsx
-│   │   ├── BottomNav.tsx
-│   │   ├── TrustlineCard.tsx
-│   │   ├── EventFeed.tsx
-│   │   ├── SwapCard.tsx
-│   │   └── StatsBar.tsx
-│   ├── hooks/
-│   │   ├── useFreighter.ts
-│   │   ├── useTrustline.ts
-│   │   ├── useContractEvents.ts
-│   │   ├── useAGTPrice.ts
-│   │   ├── usePoolStats.ts
-│   │   └── useAGTBalance.ts
-│   └── lib/
-│       └── animations.ts       # floatUp, zeroG, stagger, slideIn, …
-├── scripts/
-│   ├── deploy.js               # 6-step deploy: fund→deploy→init→mint→lp→save
-│   ├── setup-trustlines.js     # AGT trustline + issue supply
-│   └── check-trustline.js      # query trustline status for any account
-├── deployments/
-│   └── testnet.json            # auto-generated by deploy.js
-├── .github/
-│   └── workflows/
-│       ├── ci.yml              # 7-job CI/CD pipeline
-│       └── security.yml        # cargo-audit + npm audit (weekly)
-├── Makefile
-└── README.md
-```
-
----
-
-## Local development
+## 🚦 Getting Started
 
 ### Prerequisites
 
-- Rust stable + `wasm32-unknown-unknown` target
-- `soroban-cli` (`cargo install --locked soroban-cli --features opt`)
-- Node.js 20+
-- Freighter browser extension ([freighter.app](https://www.freighter.app))
-- Stellar testnet accounts (use Friendbot below)
+-   [Stellar CLI](https://developers.stellar.org/docs/tools/stellar-cli/install)
+-   [Rust & Cargo](https://rustup.rs/)
+-   [Node.js 20+](https://nodejs.org/)
+-   [Freighter Wallet](https://www.freighter.app/)
 
-### Rust toolchain setup
+### Installation
 
-```bash
-rustup target add wasm32-unknown-unknown
-cargo install --locked soroban-cli --features opt
-```
+1.  **Clone the repo:**
+    ```bash
+    git clone https://github.com/modiv2/orbit_money.git
+    cd orbit_money
+    ```
 
-### Clone + install
+2.  **Build Contracts:**
+    ```bash
+    make build-contracts
+    ```
 
-```bash
-git clone https://github.com/{YOUR_USERNAME}/orbit-money
-cd orbit-money
-
-# Build contracts
-cd contracts && cargo build
-
-# Install frontend deps
-cd ../frontend && npm install
-cp .env.example .env.local
-# → Fill in .env.local with your contract IDs and keys
-```
-
-### `.env.local` required keys
-
-```env
-# Stellar network
-NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
-NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
-NEXT_PUBLIC_SOROBAN_RPC=https://soroban-testnet.stellar.org
-
-# Contract IDs (from deployments/testnet.json after deploy)
-NEXT_PUBLIC_AGT_CONTRACT_ID={FILL_AFTER_DEPLOY}
-NEXT_PUBLIC_POOL_CONTRACT_ID={FILL_AFTER_DEPLOY}
-NEXT_PUBLIC_BRIDGE_CONTRACT_ID={FILL_AFTER_DEPLOY}
-NEXT_PUBLIC_AGT_ISSUER={FILL_AFTER_DEPLOY}
-
-# Secrets (server-side only, never NEXT_PUBLIC_)
-STELLAR_ISSUER_SECRET=S...
-STELLAR_DISTRIBUTOR_SECRET=S...
-```
-
-### Create testnet accounts
-
-```bash
-# Fund issuer via Friendbot
-curl "https://friendbot.stellar.org?addr=YOUR_ISSUER_PUBLIC_KEY"
-
-# Fund distributor
-curl "https://friendbot.stellar.org?addr=YOUR_DISTRIBUTOR_PUBLIC_KEY"
-```
+3.  **Setup Frontend:**
+    ```bash
+    cd frontend
+    npm install
+    cp .env.example .env.local
+    # Configure your environment variables
+    npm run dev
+    ```
 
 ---
 
-## Run tests
+## 📜 Contract Details
 
-```bash
-make test
-# or:
-cd contracts && cargo test --all -- --nocapture
-```
-
-All 17 tests across 3 contracts:
-
-| Contract | Tests |
-|---|---|
-| `agt-token` | `test_initialize`, `test_mint`, `test_mint_unauthorized`, `test_transfer_fee`, `test_burn`, `test_set_treasury`, `test_events_mint`, `test_balance_zero` |
-| `liquidity-pool` | `test_add_liquidity`, `test_get_price`, `test_swap_output`, `test_remove_liquidity`, `test_swap_event`, `test_inter_contract_call` |
-| `bridge` | `test_batch_operation`, `test_zero_amount_panics`, `test_get_contracts` |
+| Contract | Network | Address |
+| :--- | :--- | :--- |
+| **AGT Token** | Testnet | `CCHLK4RHSS27U4K6VRIP6QW2N5IGBJJES4GA4CI3RRUGP54G4FH5HL7P` |
+| **Liquidity Pool** | Testnet | `CCQZXG3QGFPLRS6LJJ4XALJGUGVNLISYN6BJSVOH57ED6FYJH7KGKXAR` |
+| **Bridge** | Testnet | `CBMGE6BSHIGBXAUMW32D542POCBMI3DHP7ZZGI6RTGPRECJQA3S5ZFDI` |
 
 ---
 
-## Build contracts
+## 🤝 Contributing
 
-```bash
-make build-contracts
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-# Individually:
-cargo build --target wasm32-unknown-unknown --release -p agt-token
-cargo build --target wasm32-unknown-unknown --release -p liquidity-pool
-cargo build --target wasm32-unknown-unknown --release -p bridge
-
-# Output:
-# contracts/target/wasm32-unknown-unknown/release/agt_token.wasm
-# contracts/target/wasm32-unknown-unknown/release/liquidity_pool.wasm
-# contracts/target/wasm32-unknown-unknown/release/bridge.wasm
-```
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-## Deploy to Stellar Testnet
+## ⚖️ License
 
-```bash
-# Full 6-step deploy (fund → deploy → init → mint → liquidity → save)
-STELLAR_ISSUER_SECRET=S... STELLAR_DISTRIBUTOR_SECRET=S... make deploy
+Distributed under the MIT License. See `LICENSE` for more information.
 
-# Or step by step:
-make trustlines    # Set up AGT trustline + issue 1M AGT to distributor
-```
-
-The deploy script runs these steps automatically:
-
-| Step | What happens |
-|---|---|
-| 1. Fund | Friendbot funds issuer + distributor if balance < 10 XLM |
-| 2. Deploy | Deploys 3 WASM contracts via `soroban contract deploy` |
-| 3. Initialize | Calls `initialize` on each contract with admin + params |
-| 4. Mint | Mints 1,000,000 AGT (10,000,000,000,000 stroops) to distributor |
-| 5. Liquidity | Adds 100k AGT + 50k XLM as initial pool reserves |
-| 6. Save | Writes all contract IDs + tx hashes to `deployments/testnet.json` |
-
----
-
-## Run the frontend
-
-```bash
-cd frontend && npm run dev
-# Open http://localhost:3000
-```
-
-**Pages:**
-
-| Route | Description |
-|---|---|
-| `/` | Hero + live stats (TVL, AGT price, 24h volume) |
-| `/swap` | Swap AGT ↔ XLM with live rate + 1% fee display |
-| `/pool` | Add/remove liquidity, shows reserves and APY |
-| `/dashboard` | Wallet balances, trustline status, live tx feed |
-
----
-
-## CI/CD pipeline
-
-```
-push or PR → main / develop
-  ├─ lint-contracts    (cargo fmt --check + cargo clippy -D warnings)
-  ├─ test-contracts    (cargo test --all, 17 tests)
-  ├─ build-contracts   (3x WASM, uploaded as artifact)
-  ├─ lint-frontend     (ESLint + tsc --noEmit)
-  ├─ build-frontend    (next build, .next/ uploaded)
-  ├─ deploy-preview    (Vercel preview URL, PR comment — PRs only)
-  └─ deploy-production (Vercel prod + GitHub Release — main push only)
-
-weekly (Monday 00:00 UTC):
-  └─ security          (cargo-audit + npm audit --audit-level=high)
-```
-
-### Required GitHub secrets
-
-| Secret | Description |
-|---|---|
-| `VERCEL_TOKEN` | Vercel personal access token |
-| `STELLAR_ISSUER_SECRET` | `S...` Stellar issuer keypair |
-| `STELLAR_DISTRIBUTOR_SECRET` | `S...` Stellar distributor keypair |
-
----
-
-## Makefile targets
-
-```bash
-make help            # List all targets
-make test            # Run all 17 contract tests
-make build-contracts # Build all 3 WASM binaries
-make build-frontend  # Build Next.js production bundle
-make lint            # Rust fmt+clippy + ESLint+tsc
-make deploy          # Full 6-step Stellar Testnet deploy
-make trustlines      # Set up AGT trustline + issue supply
-make ci              # Full pipeline: lint → test → build
-make clean           # Remove all build artifacts
-```
-
----
-
-## Contract interfaces
-
-### AGT Token (`agt-token`)
-
-| Function | Access | Description |
-|---|---|---|
-| `initialize(admin, name, symbol, decimals)` | — | One-time setup |
-| `mint(to, amount)` | Admin only | Create AGT tokens |
-| `burn(from, amount)` | Caller | Destroy tokens |
-| `transfer(from, to, amount)` | Caller | Send tokens; 1% fee → treasury |
-| `balance(id)` | Public | Query balance |
-| `total_supply()` | Public | Total minted supply |
-| `set_treasury(treasury)` | Admin only | Update fee recipient |
-| `decimals()` / `name()` / `symbol()` | Public | SEP-41 metadata |
-
-### Liquidity Pool (`liquidity-pool`)
-
-| Function | Access | Description |
-|---|---|---|
-| `initialize(token_contract, admin)` | — | One-time setup |
-| `add_liquidity(provider, token_amount, xlm_amount)` | Caller | Deposit AGT + XLM, receive LP shares |
-| `remove_liquidity(provider, lp_amount)` | Caller | Burn LP shares, receive proportional assets |
-| `swap(user, token_in, amount_in) → i128` | Caller | AMM swap using x·y=k formula |
-| `get_price()` | Public | Current XLM/AGT price (×1000) |
-| `get_reserves()` | Public | `(agtReserve, xlmReserve)` |
-
-### Bridge (`bridge`)
-
-| Function | Access | Description |
-|---|---|---|
-| `initialize(token_contract, pool_contract, admin)` | — | One-time setup |
-| `batch_operation(user, amount)` | Caller | Atomic: swap via pool + fee transfer via token |
-| `get_contracts()` | Public | `(tokenAddress, poolAddress)` |
-
----
-
-## Events emitted
-
-| Contract | Event | Payload |
-|---|---|---|
-| AGT Token | `mint` | `(to, amount)` |
-| AGT Token | `burn` | `(from, amount)` |
-| AGT Token | `transfer` | `(from, to, amount_after_fee)` |
-| AGT Token | `FeeCollected` | `(treasury, fee)` |
-| Liquidity Pool | `LiquidityAdded` | `(provider, token_amount, xlm_amount)` |
-| Liquidity Pool | `LiquidityRemoved` | `(provider, token_out, xlm_out)` |
-| Liquidity Pool | `swap` | `(user, amount_in, amount_out)` |
-| Bridge | `BatchExecuted` | `(user, amount)` |
-
----
-
-## SWR polling intervals
-
-| Hook | Endpoint | Refresh |
-|---|---|---|
-| `useContractEvents` | `GET /api/events` | **2 000 ms** |
-| `useAGTPrice` | `GET /api/price` | 5 000 ms |
-| `useTrustline` | `GET /api/balance/{pk}` | 5 000 ms |
-| `useAGTBalance` | `GET /api/balance/{pk}` | 8 000 ms |
-| `usePoolStats` | `GET /api/pool` | 10 000 ms |
-
----
-
-## Security
-
-- **Weekly `cargo audit`**: CVE scan on all Rust crate dependencies
-- **`npm audit --audit-level=high`**: Node vulnerability scan on every push
-- **`dependency-review-action`**: Blocks PRs that introduce high-severity deps
-- **No secrets in frontend**: All `STELLAR_ISSUER_SECRET` / `STELLAR_DISTRIBUTOR_SECRET` are server-side only, never exposed as `NEXT_PUBLIC_`
-- **Auth checks on-chain**: `admin.require_auth()` enforced in `mint` and `set_treasury`
-- **Overflow-safe**: All contracts compiled with `overflow-checks = true`
-
----
-
-## License
-
-MIT © Orbit Money
-
----
-
-> Built on [Stellar](https://stellar.org) · Powered by [Soroban](https://soroban.stellar.org) · Deployed on [Vercel](https://vercel.com)
+<div align="center">
+  <br />
+  Built with ❤️ on Stellar
+</div>

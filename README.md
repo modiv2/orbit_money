@@ -1,6 +1,6 @@
 <div align="center">
 
-![Orbit Money Banner](file:///Users/anurag/.gemini/antigravity/brain/f1acb595-908a-4eac-9fb0-fc384b5d0a16/orbit_money_banner_1776938139180.png)
+![Orbit Money Banner](./screenshots/banner.png)
 
 # 🌌 Orbit Money
 
@@ -35,15 +35,15 @@ Orbit Money is a decentralized liquidity protocol built on the **Stellar Blockch
 ## 📸 Visual Showcase
 
 ### 📱 Mobile Experience
-![Mobile Dashboard Placeholder](https://via.placeholder.com/800x400/0f172a/6366f1?text=Mobile+Dashboard+Preview)
+![Mobile Dashboard Preview](./screenshots/dashboard.png)
 *Optimized for mobile-first interaction with a persistent bottom navigation and real-time balance updates.*
 
 ### 🔄 Advanced Swaps
-![Swap UI Placeholder](https://via.placeholder.com/800x400/0f172a/8b5cf6?text=Swap+Interface+Preview)
+![Swap Interface Preview](./screenshots/swap.png)
 *Precision swapping with slippage protection and live rate calculations from pool reserves.*
 
 ### 🌊 Liquidity Provision
-![Liquidity Pool Placeholder](https://via.placeholder.com/800x400/0f172a/3b82f6?text=Liquidity+Pool+Preview)
+![Liquidity Pool Preview](./screenshots/pool.png)
 *Manage your positions with ease. Detailed pool statistics and APY tracking.*
 
 ---
